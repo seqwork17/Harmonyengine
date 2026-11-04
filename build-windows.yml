@@ -1,0 +1,34 @@
+name: Build Windows VST3
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -A x64
+
+      - name: Build (Release)
+        run: cmake --build build --config Release --parallel
+
+      - name: DSP tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item -Recurse "build/HarmonyForge_artefacts/Release/VST3/HarmonyForge.vst3" "dist/HarmonyForge.vst3"
+          Copy-Item "README.md" "dist/README.md"
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: HarmonyForge-VST3-Windows
+          path: dist/
